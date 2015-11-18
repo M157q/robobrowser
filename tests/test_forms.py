@@ -60,12 +60,14 @@ class TestForm(unittest.TestCase):
                 <input name="multi" value="multi1" />
                 <input name="multi" value="multi2" />
                 <input type="submit" name="submit" value="submit" />
+                <button type="button" name="yes" value="yes" />
             </form>
         '''
         self.form = Form(self.html)
 
     def test_fields(self):
-        keys = set(('vocals', 'guitar', 'drums', 'bass', 'multi', 'submit'))
+        keys = set(('vocals', 'guitar', 'drums', 'bass',
+                    'multi', 'submit', 'yes'))
         assert_equal(set(self.form.fields.keys()), keys)
         assert_equal(set(self.form.keys()), keys)
 
@@ -82,7 +84,8 @@ class TestForm(unittest.TestCase):
         assert_equal(
             repr(self.form),
             '<RoboForm vocals=, guitar=, drums=roger, bass=, '
-            'multi=multi1, multi=multi2, submit=submit>'
+            'multi=multi1, multi=multi2, submit=submit, '
+            'yes=yes>'
         )
 
     def test_repr_empty(self):
@@ -123,6 +126,8 @@ class TestFormMultiSubmit(unittest.TestCase):
             <form>
                 <input type="submit" name="submit1" value="value1" />
                 <input type="submit" name="submit2" value="value2" />
+                <button type="submit" name="submit3" value="value3" />
+                <button type="submit" name="submit4" value="value4" />
             </form>
         '''
         self.form = Form(self.html)
@@ -145,6 +150,8 @@ class TestFormMultiSubmit(unittest.TestCase):
         serialized = self.form.serialize(submit)
         assert_equal(serialized.data['submit1'], 'value1')
         assert_false('submit2' in serialized.data)
+        assert_false('submit3' in serialized.data)
+        assert_false('submit4' in serialized.data)
 
 
 class TestParser(unittest.TestCase):
@@ -168,6 +175,12 @@ class TestParser(unittest.TestCase):
         _fields = _parse_fields(BeautifulSoup(html))
         assert_equal(len(_fields), 1)
         assert_true(isinstance(_fields[0], fields.Input))
+
+    def test_parse_button(self):
+        html = '<button type="button" name="yes" value="yes" />'
+        _fields = _parse_fields(BeautifulSoup(html))
+        assert_equal(len(_fields), 1)
+        assert_true(isinstance(_fields[0], fields.Button))
 
     def test_parse_file_input(self):
         html = '<input name="band" type="file" />'
@@ -288,6 +301,52 @@ class TestInputBlank(unittest.TestCase):
     def setUp(self):
         self.html = '<input name="blank" />'
         self.input = fields.Input(BeautifulSoup(self.html).find('input'))
+
+    def test_initial(self):
+        assert_equal(self.input._value, None)
+        assert_equal(self.input.value, '')
+
+    def test_serialize(self):
+        assert_equal(
+            self.input.serialize(),
+            {'blank': ''}
+        )
+
+
+class TestButton(unittest.TestCase):
+
+    def setUp(self):
+        self.html = '<button name="brian" value="may" />'
+        self.input = fields.Input(BeautifulSoup(self.html).find('button'))
+
+    def test_name(self):
+        assert_equal(self.input.name, 'brian')
+
+    def test_initial(self):
+        assert_equal(self.input._value, 'may')
+        assert_equal(self.input.value, 'may')
+
+    def test_value(self):
+        self.input.value = 'red special'
+        assert_equal(self.input._value, 'red special')
+        assert_equal(self.input.value, 'red special')
+
+    def test_serialize(self):
+        assert_equal(
+            self.input.serialize(),
+            {'brian': 'may'}
+        )
+
+    def test_invalid_name(self):
+        html = '<button />'
+        assert_raises(exceptions.InvalidNameError, lambda: fields.Button(html))
+
+
+class TestButtonBlank(unittest.TestCase):
+
+    def setUp(self):
+        self.html = '<button name="blank" />'
+        self.input = fields.Button(BeautifulSoup(self.html).find('button'))
 
     def test_initial(self):
         assert_equal(self.input._value, None)
@@ -626,6 +685,16 @@ class TestDisabledValues(unittest.TestCase):
     def test_input_disabled(self):
         html = '<input name="brian" value="may" disabled />'
         input = fields.Input(BeautifulSoup(html).find('input'))
+        assert_true(input.disabled)
+
+    def test_button_enabled(self):
+        html = '<button name="brian" value="may" />'
+        input = fields.Button(BeautifulSoup(html).find('button'))
+        assert_false(input.disabled)
+
+    def test_button_disabled(self):
+        html = '<button name="brian" value="may" disabled />'
+        input = fields.Button(BeautifulSoup(html).find('button'))
         assert_true(input.disabled)
 
     def test_checkbox_enabled(self):
