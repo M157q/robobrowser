@@ -13,7 +13,7 @@ from .. import helpers
 from .. import exceptions
 
 
-_tags = ['input', 'textarea', 'select']
+_tags = ['input', 'button', 'textarea', 'select']
 _tag_ptn = re.compile(
     '|'.join(_tags),
     re.I
@@ -53,6 +53,11 @@ def _parse_field(tag, tags):
             checkboxes = _group_flat_tags(tag, tags)
             return fields.Checkbox(checkboxes)
         return fields.Input(tag)
+    if tag_type == 'button':
+        tag_type = tag.get('type', '').lower()
+        if tag_type == 'submit':
+            return fields.Submit(tag)
+        return fields.Button(tag)
     if tag_type == 'textarea':
         return fields.Textarea(tag)
     if tag_type == 'select':

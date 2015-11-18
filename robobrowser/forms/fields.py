@@ -57,6 +57,9 @@ class Submit(Input):
     pass
 
 
+class Button(Input):
+    pass
+
 class FileInput(BaseField):
 
     @BaseField.value.setter
