@@ -54,7 +54,7 @@ def _parse_field(tag, tags):
             return fields.Checkbox(checkboxes)
         return fields.Input(tag)
     if tag_type == 'button':
-        tag_type = tag.get('type', '').lower()
+        tag_type = tag.get('type', 'submit').lower()
         if tag_type == 'submit':
             return fields.Submit(tag)
         return fields.Button(tag)
